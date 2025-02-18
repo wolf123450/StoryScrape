@@ -1,0 +1,73 @@
+body {
+  background-color: var(--popup-bg-color);
+  color: var(--popup-text-color);
+  width: 400px; /* Set the width of the popup */
+}
+
+.field-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.field-group label {
+  margin-right: 10px;
+}
+
+.field-group input[type="text"] {
+  flex: 1;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--input-border-color);
+  padding: 5px;
+}
+
+.field-group input[type="checkbox"] {
+  margin-left: 10px;
+}
+
+input:focus {
+  background-color: var(--input-focus-bg-color);
+  border-color: var(--input-border-focus-color);
+  color: var(--input-text-focus-color);
+}
+
+button {
+  background-color: var(--button-bg-color);
+  color: var(--button-text-color);
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: var(--button-hover-bg-color);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+th, td {
+  padding: 5px;
+  text-align: left;
+}
+
+th {
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+}
+
+input[type="text"] {
+  width: 100%;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--input-border-color);
+  padding: 5px;
+}
+
+input[type="checkbox"] {
+  margin-left: 10px;
+}

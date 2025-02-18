@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StoryScrape</title>
+  <link rel="stylesheet" type="text/css" href="popup.css">
+  <style>
+    /* Add your styles here */
+  </style>
+</head>
+<body>
+  <h1>StoryScrape</h1>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Selector</th>
+        <th>Only Text Content</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Story Title</td>
+        <td><input type="text" id="storyTitleSelector" name="storyTitleSelector"></td>
+        <td><input type="checkbox" id="logStoryTitleText" name="logStoryTitleText" checked></td>
+      </tr>
+      <tr>
+        <td>Author</td>
+        <td><input type="text" id="authorSelector" name="authorSelector"></td>
+        <td><input type="checkbox" id="logAuthorText" name="logAuthorText" checked></td>
+      </tr>
+      <tr>
+        <td>Chapter Title</td>
+        <td><input type="text" id="chapterTitleSelector" name="chapterTitleSelector"></td>
+        <td><input type="checkbox" id="logChapterTitleText" name="logChapterTitleText" checked></td>
+      </tr>
+      <tr>
+        <td>Chapter Body</td>
+        <td><input type="text" id="chapterBodySelector" name="chapterBodySelector"></td>
+        <td><input type="checkbox" id="logChapterBodyText" name="logChapterBodyText" checked></td>
+      </tr>
+      <tr>
+        <td>Next Button</td>
+        <td><input type="text" id="nextButtonSelector" name="nextButtonSelector"></td>
+        <td><input type="checkbox" id="logNextButtonText" name="logNextButtonText" checked></td>
+      </tr>
+    </tbody>
+  </table>
+  <button id="scrapeButton">Scrape Stories</button>
+  <button id="downloadButton">Download EPUB</button>
+  <script src="libs/jszip.min.js"></script>
+  <script src="libs/FileSaver.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

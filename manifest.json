@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "StoryScrape",
+  "version": "1.0",
+  "description": "A Firefox extension to scrape stories from websites.",
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/book-solid.svg"
+  },
+  "icons": {
+    "16": "icons/book-solid.svg",
+    "48": "icons/book-solid.svg",
+    "128": "icons/book-solid.svg"
+  },
+  "applications": {
+    "gecko": {
+      "id": "storyscrape@apollo.com"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["libs/jszip.min.js", "libs/FileSaver.min.js", "content.js"]
+    }
+  ]
+}
