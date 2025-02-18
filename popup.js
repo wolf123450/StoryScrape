@@ -106,6 +106,22 @@ document.getElementById('resetCacheButton').addEventListener('click', function()
   });
 });
 
+function createToggleButton() {
+  const button = document.createElement('button');
+  const icon = document.createElement('img');
+  icon.src = 'icons/plus.svg';
+  icon.alt = 'Expand';
+  button.appendChild(icon);
+  button.classList.add('toggle-button');
+  button.addEventListener('click', function() {
+    const isExpanded = icon.src.includes('minus.svg');
+    icon.src = isExpanded ? 'icons/plus.svg' : 'icons/minus.svg';
+    icon.alt = isExpanded ? 'Expand' : 'Collapse';
+    return !isExpanded;
+  });
+  return button;
+}
+
 function displaySavedChapters() {
   const savedChaptersContainer = document.getElementById('savedChaptersContainer');
   savedChaptersContainer.innerHTML = ''; // Clear existing content
@@ -118,7 +134,9 @@ function displaySavedChapters() {
         const chapters = storyData;
 
         const storyHeader = document.createElement('h2');
-        storyHeader.textContent = `${storyTitle} by ${author}`;
+        const storyToggleButton = createToggleButton();
+        storyHeader.appendChild(storyToggleButton);
+        storyHeader.appendChild(document.createTextNode(`${storyTitle} by ${author}`));
         storyHeader.classList.add('collapsible');
         savedChaptersContainer.appendChild(storyHeader);
 
@@ -141,7 +159,10 @@ function displaySavedChapters() {
           const titleCell = document.createElement('td');
           const linkCell = document.createElement('td');
 
-          titleCell.textContent = chapter.title;
+          const chapterToggleButton = createToggleButton();
+          titleCell.appendChild(chapterToggleButton);
+          titleCell.appendChild(document.createTextNode(chapter.title));
+
           const link = document.createElement('a');
           link.href = chapter.href;
           link.textContent = 'Link';
@@ -155,30 +176,41 @@ function displaySavedChapters() {
           // List images for the chapter
           const sanitizedChapterTitle = chapter.title.replace(/\s+/g, '_').replace(/:/g, '');
           const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
-          Object.keys(items).forEach(imageKey => {
-            if (imageKey.startsWith(`${imagesParentId}/images/${sanitizedChapterTitle}/`)) {
+          const chapterImages = Object.keys(items).filter(imageKey => imageKey.startsWith(`${imagesParentId}/images/${sanitizedChapterTitle}/`));
+          
+          if (chapterImages.length > 0) {
+            const imageContainer = document.createElement('tbody');
+            imageContainer.style.display = 'none'; // Initially collapsed
+
+            chapterImages.forEach(imageKey => {
               const imageRow = document.createElement('tr');
-              const imageTitleCell = document.createElement('td');
-              const imageLinkCell = document.createElement('td');
+              const imageTitle = document.createElement('td');
+              const imageColumn = document.createElement('td');
+              const imageDisplay = document.createElement('img');
 
-              imageTitleCell.textContent = imageKey.split('/').pop();
-              const imageLink = document.createElement('a');
-              imageLink.href = items[imageKey];
-              imageLink.textContent = 'Image';
-              imageLink.target = '_blank';
-              imageLinkCell.appendChild(imageLink);
+              imageTitle.textContent = imageKey.split('/').pop();
+              imageDisplay.src = items[imageKey];
+              imageDisplay.alt = imageKey.split('/').pop();
+              imageDisplay.style.maxWidth = '100px'; // Set a max width for the image
 
-              imageRow.appendChild(imageTitleCell);
-              imageRow.appendChild(imageLinkCell);
-              tableBody.appendChild(imageRow);
-            }
-          });
+              imageRow.appendChild(imageTitle);
+              imageColumn.appendChild(imageDisplay);
+              imageRow.appendChild(imageColumn);
+              imageContainer.appendChild(imageRow);
+            });
+
+            titleCell.appendChild(imageContainer);
+
+            chapterToggleButton.addEventListener('click', function() {
+              imageContainer.style.display = chapterToggleButton.firstChild.src.includes('minus.svg') ? 'block' : 'none';
+            });
+          }
         });
         storyTable.appendChild(tableBody);
         savedChaptersContainer.appendChild(storyTable);
 
-        storyHeader.addEventListener('click', function() {
-          storyTable.style.display = storyTable.style.display === 'none' ? 'table' : 'none';
+        storyToggleButton.addEventListener('click', function() {
+          storyTable.style.display = storyToggleButton.firstChild.src.includes('minus.svg') ? 'table' : 'none';
         });
       }
     });

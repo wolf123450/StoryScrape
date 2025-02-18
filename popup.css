@@ -1,7 +1,7 @@
 body {
   background-color: var(--popup-bg-color);
   color: var(--popup-text-color);
-  width: 400px; /* Set the width of the popup */
+  width: 600px; /* Set the width of the popup */
 }
 
 .field-group {
@@ -91,4 +91,18 @@ input[type="checkbox"] {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.toggle-button img {
+  width: 24px;
+  height: 24px;
 }
