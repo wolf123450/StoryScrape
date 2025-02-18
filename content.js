@@ -26,23 +26,71 @@ if (window.storyScrapeInjected) {
 
   function saveChapter(chapter) {
     console.log("Saving Chapter:", chapter);
-    browser.storage.local.get('chapters').then(result => {
-      const chapters = result.chapters || [];
-      chapters.push(chapter);
-      browser.storage.local.set({chapters: chapters});
+    const parentID = `${chapter.storyTitle}_${chapter.author}`;
+    const chapterID = `${chapter.title}`;
+    const imagePromises = [];
+
+    // Find and process image tags in the chapter body
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = chapter.body;
+    const images = tempDiv.querySelectorAll('img');
+
+    images.forEach((img, index) => {
+      const imageUrl = img.src;
+      const imageExtension = imageUrl.split('.').pop().split(/\#|\?/)[0];
+      const imageName = `image${index + 1}.${imageExtension}`;
+      const imagePath = `${parentID}/images/${chapterID}/${imageName}`;
+
+      imagePromises.push(
+        fetch(imageUrl)
+          .then(response => response.blob())
+          .then(blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+              const base64data = reader.result;
+              const data = {};
+              data[imagePath] = base64data;
+              browser.storage.local.set(data);
+            };
+          })
+          .catch(error => console.error("Failed to download image:", error))
+      );
+
+      // Update the image tag reference in the chapter body
+      img.src = `images/${chapterID}/${imageName}`;
     });
-    browser.storage.local.get(null).then((items) => {
-      console.log(items);
+
+    Promise.all(imagePromises).then(() => {
+      chapter.body = tempDiv.innerHTML;
+      chapter.href = window.location.href; // Save the href of the page scraped
+      browser.storage.local.get(parentID).then(result => {
+        let chapters = result[parentID] || [];
+        // Replace existing chapter if it shares the same storyTitle, author, and chapterTitle
+        const existingChapterIndex = chapters.findIndex(c => c.title === chapter.title);
+        if (existingChapterIndex !== -1) {
+          chapters[existingChapterIndex] = chapter;
+        } else {
+          chapters.push(chapter);
+        }
+        const data = {};
+        data[parentID] = chapters;
+        browser.storage.local.set(data);
+      });
+      browser.storage.local.get(null).then((items) => {
+        console.log(items);
+      });
     });
   }
 
-  function createEPUB() {
+  function createEPUB(message) {
     console.log("Creating EPUB file...");
-    browser.storage.local.get(null).then((items) => {
-      console.log(items);
-    });
-    browser.storage.local.get('chapters').then(result => {
-      const chapters = result.chapters || [];
+    const storyTitle = logElement(message.storyTitleSelector, "Story Title", message.logStoryTitleText);
+    const author = logElement(message.authorSelector, "Author", message.logAuthorText);
+    const parentID = `${storyTitle}_${author}`;
+    
+    browser.storage.local.get(parentID).then(result => {
+      const chapters = result[parentID] || [];
       console.log("Chapters:", chapters);
       const zip = new JSZip();
       const epub = zip.folder("EPUB");
@@ -63,47 +111,60 @@ if (window.storyScrapeInjected) {
         `);
       });
 
-      // Add the EPUB structure files (mimetype, META-INF/container.xml, etc.)
-      zip.file("mimetype", "application/epub+zip");
-      zip.folder("META-INF").file("container.xml", `
-        <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-          <rootfiles>
-            <rootfile full-path="EPUB/package.opf" media-type="application/oebps-package+xml"/>
-          </rootfiles>
-        </container>
-      `);
+      // Add images to the EPUB
+      browser.storage.local.get(null).then(items => {
+        Object.keys(items).forEach(key => {
+          if (key.startsWith(`${parentID}/images/`)) {
+            const imageName = key.split('/').pop();
+            const base64data = items[key].split(',')[1];
+            const mimeType = items[key].split(';')[0].split(':')[1];
+            epub.file(`images/${imageName}`, base64data, { base64: true, binary: true, mimeType });
+          }
+        });
 
-      epub.file("package.opf", `
-        <package xmlns="http://www.idpf.org/2007/opf" version="3.0">
-          <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-            <dc:title>StoryScrape</dc:title>
-            <dc:language>en</dc:language>
-          </metadata>
-          <manifest>
-            ${chapters.map((_, index) => `<item id="chapter${index + 1}" href="chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`).join("\n")}
-          </manifest>
-          <spine>
-            ${chapters.map((_, index) => `<itemref idref="chapter${index + 1}"/>`).join("\n")}
-          </spine>
-        </package>
-      `);
+        // Add the EPUB structure files (mimetype, META-INF/container.xml, etc.)
+        zip.file("mimetype", "application/epub+zip");
+        zip.folder("META-INF").file("container.xml", `
+          <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+            <rootfiles>
+              <rootfile full-path="EPUB/package.opf" media-type="application/oebps-package+xml"/>
+            </rootfiles>
+          </container>
+        `);
 
-      // Generate the EPUB file and trigger the download
-      zip.generateAsync({ type: "blob" }).then((content) => {
-        saveAs(content, "story.epub");
+        epub.file("package.opf", `
+          <package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+            <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <dc:title>${storyTitle}</dc:title>
+              <dc:creator>${author}</dc:creator>
+              <dc:language>en</dc:language>
+            </metadata>
+            <manifest>
+              ${chapters.map((_, index) => `<item id="chapter${index + 1}" href="chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`).join("\n")}
+              ${Object.keys(items).filter(key => key.startsWith(`${parentID}/images/`)).map(key => {
+                const imageName = key.split('/').pop();
+                const mimeType = items[key].split(';')[0].split(':')[1];
+                return `<item id="${imageName}" href="images/${imageName}" media-type="${mimeType}"/>`;
+              }).join("\n")}
+            </manifest>
+            <spine>
+              ${chapters.map((_, index) => `<itemref idref="chapter${index + 1}"/>`).join("\n")}
+            </spine>
+          </package>
+        `);
+
+        // Generate the EPUB file and trigger the download
+        zip.generateAsync({ type: "blob" }).then((content) => {
+          saveAs(content, "story.epub");
+        });
       });
     });
   }
 
-  browser.runtime.onMessage.addListener((message) => {
-    console.log("Selectors:", message);
-
-    if (message.action === 'downloadEPUB') {
-      createEPUB();
-      return;
-    }
-
+  function scrapeChapter(message) {
     const chapter = {
+      storyTitle: logElement(message.storyTitleSelector, "Story Title", message.logStoryTitleText),
+      author: logElement(message.authorSelector, "Author", message.logAuthorText),
       title: logElement(message.chapterTitleSelector, "Chapter Title", message.logChapterTitleText),
       body: logElement(message.chapterBodySelector, "Chapter Body", message.logChapterBodyText)
     };
@@ -121,9 +182,23 @@ if (window.storyScrapeInjected) {
         } else {
           nextButtonElement.click();
         }
+        console.log("Navigating to next chapter...");
       } else {
         console.log("Next Button Element not found.");
       }
+    }
+  }
+
+  browser.runtime.onMessage.addListener((message) => {
+    console.log("Selectors:", message);
+
+    if (message.action === 'downloadEPUB') {
+      createEPUB(message);
+      return;
+    }
+
+    if (message.action === 'startScraping') {
+      scrapeChapter(message);
     }
   });
 }

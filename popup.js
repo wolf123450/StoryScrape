@@ -67,7 +67,17 @@ function sendMessageToContentScript(message) {
 }
 
 document.getElementById('scrapeButton').addEventListener('click', function() {
-  const message = {};
+  const message = { action: 'startScraping' };
+  fields.forEach(field => {
+    message[field.id] = document.getElementById(field.id).value;
+    message[field.logId] = document.getElementById(field.logId).checked;
+  });
+  sendMessageToContentScript(message);
+  setTimeout(displaySavedChapters, 500); // Redraw saved chapters after a brief timeout
+});
+
+document.getElementById('downloadButton').addEventListener('click', function() {
+  const message = { action: 'downloadEPUB' };
   fields.forEach(field => {
     message[field.id] = document.getElementById(field.id).value;
     message[field.logId] = document.getElementById(field.logId).checked;
@@ -75,6 +85,70 @@ document.getElementById('scrapeButton').addEventListener('click', function() {
   sendMessageToContentScript(message);
 });
 
-document.getElementById('downloadButton').addEventListener('click', function() {
-  sendMessageToContentScript({action: 'downloadEPUB'});
+document.getElementById('resetCacheButton').addEventListener('click', function() {
+  browser.storage.local.clear().then(() => {
+    console.log("Chapter cache reset.");
+    alert("Chapter cache has been reset.");
+    setTimeout(displaySavedChapters, 500); // Redraw saved chapters after a brief timeout
+  }).catch(error => {
+    console.error("Failed to reset chapter cache:", error);
+  });
 });
+
+function displaySavedChapters() {
+  const savedChaptersContainer = document.getElementById('savedChaptersContainer');
+  savedChaptersContainer.innerHTML = ''; // Clear existing content
+
+  browser.storage.local.get(null).then(items => {
+    Object.keys(items).forEach(key => {
+      if (key.includes('_')) {
+        const [storyTitle, author] = key.split('_');
+        const chapters = items[key];
+
+        const storyHeader = document.createElement('h2');
+        storyHeader.textContent = `${storyTitle} by ${author}`;
+        storyHeader.classList.add('collapsible');
+        savedChaptersContainer.appendChild(storyHeader);
+
+        const storyTable = document.createElement('table');
+        storyTable.classList.add('chapterTable');
+        storyTable.style.display = 'none'; // Initially collapsed
+
+        const tableHeader = document.createElement('thead');
+        tableHeader.innerHTML = `
+          <tr>
+            <th>Chapter Title</th>
+            <th>Link</th>
+          </tr>
+        `;
+        storyTable.appendChild(tableHeader);
+
+        const tableBody = document.createElement('tbody');
+        chapters.forEach(chapter => {
+          const row = document.createElement('tr');
+          const titleCell = document.createElement('td');
+          const linkCell = document.createElement('td');
+
+          titleCell.textContent = chapter.title;
+          const link = document.createElement('a');
+          link.href = chapter.href;
+          link.textContent = 'Link';
+          link.target = '_blank';
+          linkCell.appendChild(link);
+
+          row.appendChild(titleCell);
+          row.appendChild(linkCell);
+          tableBody.appendChild(row);
+        });
+        storyTable.appendChild(tableBody);
+        savedChaptersContainer.appendChild(storyTable);
+
+        storyHeader.addEventListener('click', function() {
+          storyTable.style.display = storyTable.style.display === 'none' ? 'table' : 'none';
+        });
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', displaySavedChapters);

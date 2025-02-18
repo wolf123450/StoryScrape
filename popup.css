@@ -71,3 +71,24 @@ input[type="text"] {
 input[type="checkbox"] {
   margin-left: 10px;
 }
+
+.collapsible {
+  cursor: pointer;
+  padding: 10px;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--input-border-color);
+  margin-top: 10px;
+}
+
+.chapterTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.chapterTable th, .chapterTable td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}

@@ -2,13 +2,14 @@
   "manifest_version": 2,
   "name": "StoryScrape",
   "version": "1.0",
-  "description": "A Firefox extension to scrape stories from websites.",
+  "description": "Scrape stories and save them as EPUB.",
   "background": {
     "scripts": ["background.js"]
   },
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "webNavigation"
   ],
   "browser_action": {
     "default_popup": "popup.html",

@@ -45,8 +45,25 @@
       </tr>
     </tbody>
   </table>
+
   <button id="scrapeButton">Scrape Stories</button>
   <button id="downloadButton">Download EPUB</button>
+  <button id="resetCacheButton">Reset Chapter Cache</button>
+
+  <div id="savedChaptersContainer">
+    <table id="savedChaptersTable">
+      <thead>
+        <tr>
+          <th>Chapter Title</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
   <script src="libs/jszip.min.js"></script>
   <script src="libs/FileSaver.min.js"></script>
   <script src="popup.js"></script>
