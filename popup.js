@@ -153,9 +153,10 @@ function displaySavedChapters() {
           tableBody.appendChild(row);
 
           // List images for the chapter
+          const sanitizedChapterTitle = chapter.title.replace(/\s+/g, '_').replace(/:/g, '');
           const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
           Object.keys(items).forEach(imageKey => {
-            if (imageKey.startsWith(`${imagesParentId}/images/${chapter.title}/`)) {
+            if (imageKey.startsWith(`${imagesParentId}/images/${sanitizedChapterTitle}/`)) {
               const imageRow = document.createElement('tr');
               const imageTitleCell = document.createElement('td');
               const imageLinkCell = document.createElement('td');
