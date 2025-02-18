@@ -122,6 +122,23 @@ function createToggleButton() {
   return button;
 }
 
+function moveChapter(chapters, fromIndex, toIndex) {
+  const [movedChapter] = chapters.splice(fromIndex, 1);
+  chapters.splice(toIndex, 0, movedChapter);
+  return chapters;
+}
+
+function saveReorderedChapters(storyKey, chapters) {
+  const data = {};
+  data[storyKey] = chapters;
+  browser.storage.local.set(data).then(() => {
+    console.log("Chapters reordered and saved.");
+    displaySavedChapters();
+  }).catch(error => {
+    console.error("Failed to save reordered chapters:", error);
+  });
+}
+
 function displaySavedChapters() {
   const savedChaptersContainer = document.getElementById('savedChaptersContainer');
   savedChaptersContainer.innerHTML = ''; // Clear existing content
@@ -147,20 +164,35 @@ function displaySavedChapters() {
         const tableHeader = document.createElement('thead');
         tableHeader.innerHTML = `
           <tr>
+            <th>Index</th>
             <th>Chapter Title</th>
             <th>Link</th>
+            <th>Position</th>
+            <th>Move</th>
           </tr>
         `;
         storyTable.appendChild(tableHeader);
 
         const tableBody = document.createElement('tbody');
-        chapters.forEach(chapter => {
+        chapters.forEach((chapter, index) => {
           const row = document.createElement('tr');
+          const indexCell = document.createElement('td');
           const titleCell = document.createElement('td');
           const linkCell = document.createElement('td');
+          const positionCell = document.createElement('td');
+          const moveCell = document.createElement('td');
+
+          indexCell.textContent = index;
+
+          // List images for the chapter
+          const sanitizedChapterTitle = chapter.title.replace(/\s+/g, '_').replace(/:/g, '');
+          const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
+          const chapterImages = Object.keys(items).filter(imageKey => imageKey.startsWith(`${imagesParentId}/images/${sanitizedChapterTitle}/`));
 
           const chapterToggleButton = createToggleButton();
-          titleCell.appendChild(chapterToggleButton);
+          if (chapterImages.length > 0) {
+            titleCell.appendChild(chapterToggleButton);
+          }
           titleCell.appendChild(document.createTextNode(chapter.title));
 
           const link = document.createElement('a');
@@ -169,14 +201,30 @@ function displaySavedChapters() {
           link.target = '_blank';
           linkCell.appendChild(link);
 
+          const positionInput = document.createElement('input');
+          positionInput.type = 'number';
+          positionInput.value = index;
+          positionInput.min = 0;
+          positionInput.max = chapters.length - 1;
+          positionCell.appendChild(positionInput);
+
+          const moveButton = document.createElement('button');
+          moveButton.textContent = 'Move';
+          moveButton.addEventListener('click', () => {
+            const newIndex = parseInt(positionInput.value, 10);
+            if (newIndex >= 0 && newIndex < chapters.length) {
+              const reorderedChapters = moveChapter([...chapters], index, newIndex);
+              saveReorderedChapters(key, reorderedChapters);
+            }
+          });
+          moveCell.appendChild(moveButton);
+
+          row.appendChild(indexCell);
           row.appendChild(titleCell);
           row.appendChild(linkCell);
+          row.appendChild(positionCell);
+          row.appendChild(moveCell);
           tableBody.appendChild(row);
-
-          // List images for the chapter
-          const sanitizedChapterTitle = chapter.title.replace(/\s+/g, '_').replace(/:/g, '');
-          const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
-          const chapterImages = Object.keys(items).filter(imageKey => imageKey.startsWith(`${imagesParentId}/images/${sanitizedChapterTitle}/`));
           
           if (chapterImages.length > 0) {
             const imageContainer = document.createElement('tbody');
