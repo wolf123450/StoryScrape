@@ -36,10 +36,17 @@ if (window.storyScrapeInjected) {
     const images = tempDiv.querySelectorAll('img');
 
     images.forEach((img, index) => {
-      const imageUrl = img.src;
+      const imageUrl = img.src.toString();
       const imageExtension = imageUrl.split('.').pop().split(/\#|\?/)[0];
       const imageName = `image${index + 1}.${imageExtension}`;
       const imagePath = `${parentID}/images/${chapterID}/${imageName}`;
+
+      // Log all vars so far
+      console.log("Image URL:", imageUrl);
+      console.log("Image Extension:", imageExtension);
+      console.log("Image Name:", imageName);
+      console.log("Image Path:", imagePath);
+
 
       imagePromises.push(
         fetch(imageUrl)
@@ -104,7 +111,7 @@ if (window.storyScrapeInjected) {
               <title>${chapter.title}</title>
             </head>
             <body>
-              <h1>${chapter.title}</h1>
+              <h1 id="chapter${index + 1}">${chapter.title}</h1>
               <div>${chapter.body}</div>
             </body>
           </html>
@@ -150,6 +157,9 @@ if (window.storyScrapeInjected) {
             <spine>
               ${chapters.map((_, index) => `<itemref idref="chapter${index + 1}"/>`).join("\n")}
             </spine>
+            <guide>
+              ${chapters.map((chapter, index) => `<reference type="text" title="${chapter.title}" href="chapter${index + 1}.xhtml#chapter${index + 1}"/>`).join("\n")}
+            </guide>
           </package>
         `);
 
@@ -172,32 +182,59 @@ if (window.storyScrapeInjected) {
     if (chapter.title && chapter.body) {
       saveChapter(chapter);
     }
+  }
 
-    // Click or follow the link from the next button selector
+  function navigateToNextChapter(message) {
     if (message.nextButtonSelector) {
       const nextButtonElement = document.querySelector(message.nextButtonSelector);
       if (nextButtonElement) {
-        if (nextButtonElement.tagName.toLowerCase() === 'a') {
-          window.location.href = nextButtonElement.href;
-        } else {
-          nextButtonElement.click();
-        }
-        console.log("Navigating to next chapter...");
+        const nextHref = nextButtonElement.tagName.toLowerCase() === 'a' ? nextButtonElement.href : window.location.href;
+        browser.storage.local.set({ expectedNavigationHref: nextHref, isScraping: true }).then(() => {
+          if (nextButtonElement.tagName.toLowerCase() === 'a') {
+            window.location.href = nextButtonElement.href;
+          } else {
+            nextButtonElement.click();
+          }
+          console.log("Navigating to next chapter...");
+        });
       } else {
         console.log("Next Button Element not found.");
       }
     }
   }
 
+  function checkAndContinueScraping() {
+    browser.storage.local.get(['expectedNavigationHref', 'isScraping', 'lastMessage']).then(result => {
+      if (result.isScraping && result.expectedNavigationHref === window.location.href) {
+        browser.storage.local.set({ expectedNavigationHref: null, isScraping: false }).then(() => {
+          const lastMessage = result.lastMessage;
+          if (lastMessage) {
+            scrapeChapter(lastMessage);
+            navigateToNextChapter(lastMessage);
+          }
+        });
+      }
+    });
+  }
+
+  checkAndContinueScraping();
+
   browser.runtime.onMessage.addListener((message) => {
     console.log("Selectors:", message);
+    // Save last message in cache
+    browser.storage.local.set({ lastMessage: message });
 
     if (message.action === 'downloadEPUB') {
       createEPUB(message);
       return;
     }
 
-    if (message.action === 'startScraping') {
+    if (message.action === 'scrapeForward') {
+      scrapeChapter(message);
+      navigateToNextChapter(message);
+    }
+
+    if (message.action === 'scrapeOne') {
       scrapeChapter(message);
     }
   });

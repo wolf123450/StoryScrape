@@ -55,19 +55,30 @@ function sendMessageToContentScript(message) {
     browser.tabs.sendMessage(tabId, {ping: true}).then(() => {
       // Content script is already injected
       browser.tabs.sendMessage(tabId, message);
-    }).catch(() => {
-      // Content script is not injected, inject it
-      browser.tabs.executeScript(tabId, {file: 'content.js'}).then(() => {
-        browser.tabs.sendMessage(tabId, message);
-      }).catch(error => {
-        console.error("Failed to inject content script:", error);
-      });
-    });
+    })
+    // .catch(() => {
+    //   // Content script is not injected, inject it
+    //   browser.tabs.executeScript(tabId, {file: 'content.js'}).then(() => {
+    //     browser.tabs.sendMessage(tabId, message);
+    //   }).catch(error => {
+    //     console.error("Failed to inject content script:", error);
+    //   });
+    // });
   });
 }
 
-document.getElementById('scrapeButton').addEventListener('click', function() {
-  const message = { action: 'startScraping' };
+document.getElementById('scrapeChapterButton').addEventListener('click', function() {
+  const message = { action: 'scrapeOne' };
+  fields.forEach(field => {
+    message[field.id] = document.getElementById(field.id).value;
+    message[field.logId] = document.getElementById(field.logId).checked;
+  });
+  sendMessageToContentScript(message);
+  setTimeout(displaySavedChapters, 500); // Redraw saved chapters after a brief timeout
+});
+
+document.getElementById('scrapeForwardButton').addEventListener('click', function() {
+  const message = { action: 'scrapeForward' };
   fields.forEach(field => {
     message[field.id] = document.getElementById(field.id).value;
     message[field.logId] = document.getElementById(field.logId).checked;
@@ -101,9 +112,10 @@ function displaySavedChapters() {
 
   browser.storage.local.get(null).then(items => {
     Object.keys(items).forEach(key => {
-      if (key.includes('_')) {
-        const [storyTitle, author] = key.split('_');
-        const chapters = items[key];
+      if (key.startsWith("ScrapeStory") && key.includes('_')) {
+        const [scrapeStory, storyTitle, author] = key.split('_');
+        const storyData = items[key];
+        const chapters = storyData;
 
         const storyHeader = document.createElement('h2');
         storyHeader.textContent = `${storyTitle} by ${author}`;
@@ -139,6 +151,27 @@ function displaySavedChapters() {
           row.appendChild(titleCell);
           row.appendChild(linkCell);
           tableBody.appendChild(row);
+
+          // List images for the chapter
+          const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
+          Object.keys(items).forEach(imageKey => {
+            if (imageKey.startsWith(`${imagesParentId}/images/${chapter.title}/`)) {
+              const imageRow = document.createElement('tr');
+              const imageTitleCell = document.createElement('td');
+              const imageLinkCell = document.createElement('td');
+
+              imageTitleCell.textContent = imageKey.split('/').pop();
+              const imageLink = document.createElement('a');
+              imageLink.href = items[imageKey];
+              imageLink.textContent = 'Image';
+              imageLink.target = '_blank';
+              imageLinkCell.appendChild(imageLink);
+
+              imageRow.appendChild(imageTitleCell);
+              imageRow.appendChild(imageLinkCell);
+              tableBody.appendChild(imageRow);
+            }
+          });
         });
         storyTable.appendChild(tableBody);
         savedChaptersContainer.appendChild(storyTable);
