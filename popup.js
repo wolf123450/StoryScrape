@@ -26,6 +26,127 @@ const fields = [
   { id: 'nextButtonSelector', logId: 'logNextButtonText' }
 ];
 
+// Function to save selector settings
+function saveSelectors() {
+  const selectorSetTitle = document.getElementById('selectorSetTitle').value.trim();
+  if (!selectorSetTitle) {
+    alert('Please enter a title for the selector set.');
+    return;
+  }
+
+  const selectorSettings = {};
+  fields.forEach(field => {
+    selectorSettings[field.id] = document.getElementById(field.id).value;
+    selectorSettings[field.logId] = document.getElementById(field.logId).checked;
+  });
+
+  browser.storage.sync.get('savedSelectorSets').then(result => {
+    const savedSelectorSets = result.savedSelectorSets || {};
+    savedSelectorSets[selectorSetTitle] = selectorSettings;
+    
+    browser.storage.sync.set({ savedSelectorSets }).then(() => {
+      alert(`Selector settings saved as "${selectorSetTitle}"`);
+    });
+  });
+}
+
+// Function to load selector settings
+function loadSelectors(title) {
+  browser.storage.sync.get('savedSelectorSets').then(result => {
+    const savedSelectorSets = result.savedSelectorSets || {};
+    const settings = savedSelectorSets[title];
+    
+    if (settings) {
+      fields.forEach(field => {
+        document.getElementById(field.id).value = settings[field.id] || '';
+        document.getElementById(field.logId).checked = settings[field.logId] !== undefined ? settings[field.logId] : true;
+        updateElementFoundStatus(field.id);
+      });
+      
+      // Save loaded settings to sync storage
+      const data = {};
+      fields.forEach(field => {
+        data[field.id] = settings[field.id] || '';
+        data[field.logId] = settings[field.logId] !== undefined ? settings[field.logId] : true;
+      });
+      browser.storage.sync.set(data);
+      
+      document.getElementById('selectorSetTitle').value = title;
+      toggleSavedSelectorsContainer(false); // Hide the container after loading
+    }
+  });
+}
+
+// Function to display saved selector sets
+function displaySavedSelectorSets() {
+  const selectorSetsList = document.getElementById('selectorSetsList');
+  selectorSetsList.innerHTML = ''; // Clear existing content
+  
+  browser.storage.sync.get('savedSelectorSets').then(result => {
+    const savedSelectorSets = result.savedSelectorSets || {};
+    
+    if (Object.keys(savedSelectorSets).length === 0) {
+      selectorSetsList.innerHTML = '<p>No saved selector sets found.</p>';
+      return;
+    }
+    
+    const list = document.createElement('ul');
+    list.className = 'selector-sets-list';
+    
+    Object.keys(savedSelectorSets).forEach(title => {
+      const listItem = document.createElement('li');
+      
+      const loadButton = document.createElement('button');
+      loadButton.textContent = 'Load';
+      loadButton.className = 'selector-set-load-btn';
+      loadButton.addEventListener('click', () => loadSelectors(title));
+      
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+      deleteButton.className = 'selector-set-delete-btn';
+      deleteButton.addEventListener('click', () => deleteSelector(title));
+      
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = title;
+      titleSpan.className = 'selector-set-title';
+      
+      listItem.appendChild(loadButton);
+      listItem.appendChild(deleteButton);
+      listItem.appendChild(titleSpan);
+      list.appendChild(listItem);
+    });
+    
+    selectorSetsList.appendChild(list);
+  });
+}
+
+// Function to delete a saved selector set
+function deleteSelector(title) {
+  if (confirm(`Are you sure you want to delete the selector set "${title}"?`)) {
+    browser.storage.sync.get('savedSelectorSets').then(result => {
+      const savedSelectorSets = result.savedSelectorSets || {};
+      
+      if (savedSelectorSets[title]) {
+        delete savedSelectorSets[title];
+        browser.storage.sync.set({ savedSelectorSets }).then(() => {
+          displaySavedSelectorSets();
+          alert(`Selector set "${title}" has been deleted.`);
+        });
+      }
+    });
+  }
+}
+
+// Function to toggle the visibility of the saved selectors container
+function toggleSavedSelectorsContainer(show) {
+  const container = document.getElementById('savedSelectorsContainer');
+  container.style.display = show ? 'block' : 'none';
+  
+  if (show) {
+    displaySavedSelectorSets();
+  }
+}
+
 function updateElementFoundStatus(fieldId) {
   const selector = document.getElementById(fieldId).value;
   browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
@@ -74,15 +195,14 @@ function sendMessageToContentScript(message) {
     browser.tabs.sendMessage(tabId, {ping: true}).then(() => {
       // Content script is already injected
       browser.tabs.sendMessage(tabId, message);
-    })
-    // .catch(() => {
-    //   // Content script is not injected, inject it
-    //   browser.tabs.executeScript(tabId, {file: 'content.js'}).then(() => {
-    //     browser.tabs.sendMessage(tabId, message);
-    //   }).catch(error => {
-    //     console.error("Failed to inject content script:", error);
-    //   });
-    // });
+    }).catch(() => {
+      // Content script is not injected, inject it
+      browser.tabs.executeScript(tabId, {file: 'content.js'}).then(() => {
+        browser.tabs.sendMessage(tabId, message);
+      }).catch(error => {
+        console.error("Failed to inject content script:", error);
+      });
+    });
   });
 }
 
@@ -123,6 +243,12 @@ document.getElementById('resetCacheButton').addEventListener('click', function()
   }).catch(error => {
     console.error("Failed to reset chapter cache:", error);
   });
+});
+
+// Add event listeners for selector save/load buttons
+document.getElementById('saveSelectorsButton').addEventListener('click', saveSelectors);
+document.getElementById('loadSelectorsButton').addEventListener('click', function() {
+  toggleSavedSelectorsContainer(document.getElementById('savedSelectorsContainer').style.display === 'none');
 });
 
 function createToggleButton() {
@@ -284,4 +410,9 @@ function displaySavedChapters() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', displaySavedChapters);
+// Initialize the popup
+document.addEventListener('DOMContentLoaded', function() {
+  displaySavedChapters();
+  // Reset the saved selectors container to hidden on load
+  document.getElementById('savedSelectorsContainer').style.display = 'none';
+});

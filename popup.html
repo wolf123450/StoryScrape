@@ -7,6 +7,20 @@
 <body>
   <h1 class="centered-title">StoryScrape</h1>
   <hr class="title-divider">
+  
+  <!-- Add selector title and save/load buttons -->
+  <div class="selector-controls">
+    <input type="text" id="selectorSetTitle" placeholder="Selector Set Title">
+    <button id="saveSelectorsButton">Save Selectors</button>
+    <button id="loadSelectorsButton">Load Selectors</button>
+  </div>
+  
+  <!-- Add collapsible section for saved selectors -->
+  <div id="savedSelectorsContainer" style="display: none;">
+    <h2>Saved Selector Sets</h2>
+    <div id="selectorSetsList"></div>
+  </div>
+  
   <table>
     <thead>
       <tr>

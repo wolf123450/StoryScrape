@@ -117,3 +117,49 @@ input[type="checkbox"] {
   margin-top: 10px;
   margin-bottom: 20px;
 }
+
+/* Add styles for selector controls */
+.selector-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.selector-controls input {
+  flex: 1;
+}
+
+.selector-controls button {
+  padding: 8px 12px;
+  margin: 5px 0;
+}
+
+#savedSelectorsContainer {
+  margin-top: 15px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid var(--input-border-color);
+  border-radius: 4px;
+}
+
+.selector-sets-list {
+  list-style: none;
+  padding: 0;
+}
+
+.selector-sets-list li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.selector-set-load-btn,
+.selector-set-delete-btn {
+  margin-right: 8px;
+  padding: 5px 10px;
+}
+
+.selector-set-title {
+  margin-left: 5px;
+}
