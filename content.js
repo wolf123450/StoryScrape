@@ -38,6 +38,7 @@ if (window.storyScrapeInjected) {
     const imagesParentId = `ScrapeImages_${chapter.storyTitle}_${chapter.author}`;
     const chapterID = `${chapter.title}`;
     const imagePromises = [];
+    const errors = [];
 
     // Find and process image tags in the chapter body
     const parser = new DOMParser();
@@ -74,7 +75,10 @@ if (window.storyScrapeInjected) {
               browser.storage.local.set(data);
             };
           })
-          .catch(error => console.error("Failed to download image:", error))
+          .catch(error => {
+            console.error("Failed to download image:", error);
+            errors.push(`Failed to download image: ${imageUrl}`);
+          })
       );
     });
 
@@ -98,6 +102,7 @@ if (window.storyScrapeInjected) {
         console.log(items);
       });
     });
+    return errors;
   }
 
   function createEPUB(message) {
@@ -245,7 +250,7 @@ if (window.storyScrapeInjected) {
     };
 
     if (chapter.title && chapter.body) {
-      saveChapter(chapter);
+      return saveChapter(chapter);
     }
   }
 
@@ -295,12 +300,21 @@ if (window.storyScrapeInjected) {
     }
 
     if (message.action === 'scrapeForward') {
-      scrapeChapter(message);
-      navigateToNextChapter(message);
+      errors = scrapeChapter(message);
+      if (errors.length > 0) {
+        console.error("Errors occurred while scraping chapter:", errors);
+      } else {
+        navigateToNextChapter(message);
+      }
     }
 
     if (message.action === 'scrapeOne') {
       scrapeChapter(message);
+    }
+
+    if (message.action === 'checkSelector') {
+      const element = document.querySelector(message.selector);
+      return Promise.resolve({ found: !!element });
     }
   });
 }

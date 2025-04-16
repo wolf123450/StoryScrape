@@ -26,12 +26,30 @@ const fields = [
   { id: 'nextButtonSelector', logId: 'logNextButtonText' }
 ];
 
+function updateElementFoundStatus(fieldId) {
+  const selector = document.getElementById(fieldId).value;
+  browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+    const tabId = tabs[0].id;
+    browser.tabs.sendMessage(tabId, { action: 'checkSelector', selector }).then(response => {
+      const statusElement = document.getElementById(`${fieldId}Status`);
+      if (response.found) {
+        statusElement.textContent = 'Element found';
+        statusElement.style.color = 'green';
+      } else {
+        statusElement.textContent = 'Element not found';
+        statusElement.style.color = 'red';
+      }
+    });
+  });
+}
+
 // Retrieve and set input values from storage
 const storageKeys = fields.flatMap(field => [field.id, field.logId]);
 browser.storage.sync.get(storageKeys).then(result => {
   fields.forEach(field => {
     document.getElementById(field.id).value = result[field.id] || '';
     document.getElementById(field.logId).checked = result[field.logId] !== undefined ? result[field.logId] : true;
+    updateElementFoundStatus(field.id);
   });
 });
 
@@ -41,6 +59,7 @@ fields.forEach(field => {
     const data = {};
     data[field.id] = this.value;
     browser.storage.sync.set(data);
+    updateElementFoundStatus(field.id);
   });
   document.getElementById(field.logId).addEventListener('change', function() {
     const data = {};

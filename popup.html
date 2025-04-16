@@ -3,12 +3,10 @@
 <head>
   <title>StoryScrape</title>
   <link rel="stylesheet" type="text/css" href="popup.css">
-  <style>
-    /* Add your styles here */
-  </style>
 </head>
 <body>
-  <h1>StoryScrape</h1>
+  <h1 class="centered-title">StoryScrape</h1>
+  <hr class="title-divider">
   <table>
     <thead>
       <tr>
@@ -20,27 +18,42 @@
     <tbody>
       <tr>
         <td>Story Title</td>
-        <td><input type="text" id="storyTitleSelector" name="storyTitleSelector"></td>
+        <td>
+          <input type="text" id="storyTitleSelector" name="storyTitleSelector">
+          <span id="storyTitleSelectorStatus"></span>
+        </td>
         <td><input type="checkbox" id="logStoryTitleText" name="logStoryTitleText" checked></td>
       </tr>
       <tr>
         <td>Author</td>
-        <td><input type="text" id="authorSelector" name="authorSelector"></td>
+        <td>
+          <input type="text" id="authorSelector" name="authorSelector">
+          <span id="authorSelectorStatus"></span>
+        </td>
         <td><input type="checkbox" id="logAuthorText" name="logAuthorText" checked></td>
       </tr>
       <tr>
         <td>Chapter Title</td>
-        <td><input type="text" id="chapterTitleSelector" name="chapterTitleSelector"></td>
+        <td>
+          <input type="text" id="chapterTitleSelector" name="chapterTitleSelector">
+          <span id="chapterTitleSelectorStatus"></span>
+        </td>
         <td><input type="checkbox" id="logChapterTitleText" name="logChapterTitleText" checked></td>
       </tr>
       <tr>
         <td>Chapter Body</td>
-        <td><input type="text" id="chapterBodySelector" name="chapterBodySelector"></td>
+        <td>
+          <input type="text" id="chapterBodySelector" name="chapterBodySelector">
+          <span id="chapterBodySelectorStatus"></span>
+        </td>
         <td><input type="checkbox" id="logChapterBodyText" name="logChapterBodyText" checked></td>
       </tr>
       <tr>
         <td>Next Button</td>
-        <td><input type="text" id="nextButtonSelector" name="nextButtonSelector"></td>
+        <td>
+          <input type="text" id="nextButtonSelector" name="nextButtonSelector">
+          <span id="nextButtonSelectorStatus"></span>
+        </td>
         <td><input type="checkbox" id="logNextButtonText" name="logNextButtonText" checked></td>
       </tr>
     </tbody>
