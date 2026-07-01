@@ -3,3 +3,6 @@ dist/
 build/
 *.crx
 *.zip
+
+Untitled-*.xml
+*.xml

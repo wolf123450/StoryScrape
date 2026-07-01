@@ -21,60 +21,149 @@
     <div id="selectorSetsList"></div>
   </div>
   
-  <table>
-    <thead>
-      <tr>
-        <th></th>
-        <th>Selector</th>
-        <th>Only Text Content</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Story Title</td>
-        <td>
-          <input type="text" id="storyTitleSelector" name="storyTitleSelector">
-          <span id="storyTitleSelectorStatus"></span>
-        </td>
-        <td><input type="checkbox" id="logStoryTitleText" name="logStoryTitleText" checked></td>
-      </tr>
-      <tr>
-        <td>Author</td>
-        <td>
-          <input type="text" id="authorSelector" name="authorSelector">
-          <span id="authorSelectorStatus"></span>
-        </td>
-        <td><input type="checkbox" id="logAuthorText" name="logAuthorText" checked></td>
-      </tr>
-      <tr>
-        <td>Chapter Title</td>
-        <td>
-          <input type="text" id="chapterTitleSelector" name="chapterTitleSelector">
-          <span id="chapterTitleSelectorStatus"></span>
-        </td>
-        <td><input type="checkbox" id="logChapterTitleText" name="logChapterTitleText" checked></td>
-      </tr>
-      <tr>
-        <td>Chapter Body</td>
-        <td>
-          <input type="text" id="chapterBodySelector" name="chapterBodySelector">
-          <span id="chapterBodySelectorStatus"></span>
-        </td>
-        <td><input type="checkbox" id="logChapterBodyText" name="logChapterBodyText" checked></td>
-      </tr>
-      <tr>
-        <td>Next Button</td>
-        <td>
-          <input type="text" id="nextButtonSelector" name="nextButtonSelector">
-          <span id="nextButtonSelectorStatus"></span>
-        </td>
-        <td><input type="checkbox" id="logNextButtonText" name="logNextButtonText" checked></td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- Add tab interface for different scraping modes -->
+  <div class="tab-container">
+    <div class="tab-buttons">
+      <button id="nextButtonTab" class="tab-button active">Next Button Mode</button>
+      <button id="tocTab" class="tab-button">Table of Contents Mode</button>
+    </div>
+    
+    <!-- Next Button Mode Tab Content -->
+    <div id="nextButtonTabContent" class="tab-content active">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Selector</th>
+            <th>Only Text Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Story Title</td>
+            <td>
+              <input type="text" id="storyTitleSelector" name="storyTitleSelector">
+              <span id="storyTitleSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="logStoryTitleText" name="logStoryTitleText" checked></td>
+          </tr>
+          <tr>
+            <td>Author</td>
+            <td>
+              <input type="text" id="authorSelector" name="authorSelector">
+              <span id="authorSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="logAuthorText" name="logAuthorText" checked></td>
+          </tr>
+          <tr>
+            <td>Chapter Title</td>
+            <td>
+              <input type="text" id="chapterTitleSelector" name="chapterTitleSelector">
+              <span id="chapterTitleSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="logChapterTitleText" name="logChapterTitleText" checked></td>
+          </tr>
+          <tr>
+            <td>Chapter Body</td>
+            <td>
+              <input type="text" id="chapterBodySelector" name="chapterBodySelector">
+              <span id="chapterBodySelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="logChapterBodyText" name="logChapterBodyText" checked></td>
+          </tr>
+          <tr>
+            <td>Next Button</td>
+            <td>
+              <input type="text" id="nextButtonSelector" name="nextButtonSelector">
+              <span id="nextButtonSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="logNextButtonText" name="logNextButtonText" checked></td>
+          </tr>
+        </tbody>
+      </table>
 
-  <button id="scrapeChapterButton">Scrape Chapter</button>
-  <button id="scrapeForwardButton">Scrape Forward</button>
+      <button id="scrapeChapterButton">Scrape Chapter</button>
+      <button id="scrapeForwardButton">Scrape Forward</button>
+    </div>
+    
+    <!-- Table of Contents Mode Tab Content -->
+    <div id="tocTabContent" class="tab-content">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Selector</th>
+            <th>Only Text Content</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Story Title</td>
+            <td>
+              <input type="text" id="tocStoryTitleSelector" name="tocStoryTitleSelector">
+              <span id="tocStoryTitleSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="tocLogStoryTitleText" name="tocLogStoryTitleText" checked></td>
+          </tr>
+          <tr>
+            <td>Author</td>
+            <td>
+              <input type="text" id="tocAuthorSelector" name="tocAuthorSelector">
+              <span id="tocAuthorSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="tocLogAuthorText" name="tocLogAuthorText" checked></td>
+          </tr>
+          <tr>
+            <td>Chapter Title</td>
+            <td>
+              <input type="text" id="tocChapterTitleSelector" name="tocChapterTitleSelector">
+              <span id="tocChapterTitleSelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="tocLogChapterTitleText" name="tocLogChapterTitleText" checked></td>
+          </tr>
+          <tr>
+            <td>Chapter Body</td>
+            <td>
+              <input type="text" id="tocChapterBodySelector" name="tocChapterBodySelector">
+              <span id="tocChapterBodySelectorStatus"></span>
+            </td>
+            <td><input type="checkbox" id="tocLogChapterBodyText" name="tocLogChapterBodyText" checked></td>
+          </tr>
+          <tr>
+            <td>TOC Chapter Links</td>
+            <td>
+              <input type="text" id="tocLinksSelector" name="tocLinksSelector">
+              <span id="tocLinksSelectorStatus"></span>
+            </td>
+            <td>
+              <select id="tocLinkOrder">
+                <option value="ascending">Ascending</option>
+                <option value="descending">Descending</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div id="tocLinksPreview" class="toc-links-preview">
+        <h3>Chapter Links Preview</h3>
+        <button id="extractTocLinksButton">Extract Links</button>
+        <div id="tocLinksCount"></div>
+        <ul id="tocLinksList"></ul>
+      </div>
+
+      <button id="scrapeTocButton">Scrape All Chapters</button>
+      <div id="tocProgress" class="progress-container">
+        <div class="progress-text">Progress: 0/0 chapters</div>
+        <progress id="tocProgressBar" value="0" max="100"></progress>
+      </div>
+      <div class="debug-option">
+        <input type="checkbox" id="debugFirstChapter" name="debugFirstChapter">
+        <label for="debugFirstChapter">Debug First Chapter</label>
+      </div>
+    </div>
+  </div>
+
   <button id="downloadButton">Download EPUB</button>
   <button id="resetCacheButton">Reset Chapter Cache</button>
 

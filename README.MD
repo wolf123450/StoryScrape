@@ -9,6 +9,7 @@ StoryScrape is a browser extension designed to scrape chapters from web novels w
 - Scrapes chapters from web novels.
 - Generates EPUB files with bookmarks and Table of Contents.
 - Handles multiple stories in the cache (though not recommended for large stories due to memory constraints).
+- Support for image scraping and including images in the EPUB.
 
 ## Requirements
 Before using StoryScrape, ensure you have:
@@ -39,8 +40,15 @@ If a chapter fails to download:
 - Click "Scrape Chapter" in the popup to retry.
 
 ### 4. Downloading EPUB
-1. Once all chapters are downloaded, click "Download EPUB."
-2. The extension will generate an EPUB file with all chapters and images.
+1. Once chapters are downloaded, you can see them listed in the popup.
+2. Each story has its own "Download EPUB" button for easy access.
+3. Click the button to generate an EPUB file with all chapters and images.
+
+## Improved EPUB Generation
+- Each story now has its own dedicated download button
+- Proper file naming based on story title and author
+- More robust error handling for images and chapter content
+- Better organization of chapters and images in the EPUB file
 
 ## Limitations
 - **Cover Images:** Currently unsupported; add manually using Calibre.

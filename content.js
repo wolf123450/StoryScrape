@@ -6,17 +6,24 @@ if (window.storyScrapeInjected) {
 
   function logElement(selector, elementName, logTextContent = true) {
     if (selector) {
-      const element = document.querySelector(selector);
-      if (element) {
-        if (logTextContent) {
-          console.log(`${elementName} Element:`, element.textContent);
-          return element.textContent;
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          console.log(`${elementName} Element found:`, element);
+          if (logTextContent) {
+            console.log(`${elementName} Text Content:`, element.textContent.trim());
+            return element.textContent.trim();
+          } else {
+            // Get the HTML content properly
+            const content = element.innerHTML;
+            console.log(`${elementName} HTML Content length:`, content.length);
+            return content;
+          }
         } else {
-          console.log(`${elementName} Element:`, element.outerHTML);
-          return element.outerHTML;
+          console.log(`${elementName} Element not found with selector: "${selector}"`);
         }
-      } else {
-        console.log(`${elementName} Element not found.`);
+      } catch (error) {
+        console.error(`Error processing ${elementName} with selector "${selector}":`, error);
       }
     } else {
       console.log(`${elementName} Selector is empty.`);
@@ -82,33 +89,43 @@ if (window.storyScrapeInjected) {
       );
     });
 
-    Promise.all(imagePromises).then(() => {
-      chapter.body = tempDoc.documentElement.outerHTML;;
-      chapter.href = window.location.href; // Save the href of the page scraped
-      browser.storage.local.get(parentID).then(result => {
-        let chapters = result[parentID] || [];
-        // Replace existing chapter if it shares the same storyTitle, author, and chapterTitle
-        const existingChapterIndex = chapters.findIndex(c => c.title === chapter.title);
-        if (existingChapterIndex !== -1) {
-          chapters[existingChapterIndex] = chapter;
-        } else {
-          chapters.push(chapter);
-        }
-        const data = {};
-        data[parentID] = chapters;
-        browser.storage.local.set(data);
-      });
-      browser.storage.local.get(null).then((items) => {
-        console.log(items);
+    return new Promise((resolve) => {
+      Promise.all(imagePromises).then(() => {
+        chapter.body = tempDoc.documentElement.outerHTML;
+        chapter.href = window.location.href; // Save the href of the page scraped
+        browser.storage.local.get(parentID).then(result => {
+          let chapters = result[parentID] || [];
+          // Replace existing chapter if it shares the same storyTitle, author, and chapterTitle
+          const existingChapterIndex = chapters.findIndex(c => c.title === chapter.title);
+          if (existingChapterIndex !== -1) {
+            chapters[existingChapterIndex] = chapter;
+          } else {
+            chapters.push(chapter);
+          }
+          const data = {};
+          data[parentID] = chapters;
+          browser.storage.local.set(data).then(() => {
+            console.log("Chapter saved successfully:", chapter.title);
+            resolve(errors);
+          }).catch(err => {
+            console.error("Error saving chapter:", err);
+            errors.push("Failed to save chapter to storage");
+            resolve(errors);
+          });
+        }).catch(err => {
+          console.error("Error getting existing chapters:", err);
+          errors.push("Failed to get existing chapters from storage");
+          resolve(errors);
+        });
       });
     });
-    return errors;
   }
 
   function createEPUB(message) {
     console.log("Creating EPUB file...");
-    const storyTitle = logElement(message.storyTitleSelector, "Story Title", message.logStoryTitleText);
-    const author = logElement(message.authorSelector, "Author", message.logAuthorText);
+    const storyTitle = message.storyTitle || logElement(message.storyTitleSelector, "Story Title", message.logStoryTitleText);
+    const author = message.author || logElement(message.authorSelector, "Author", message.logAuthorText);
+    const filename = message.filename || "story.epub";
     const parentID = `ScrapeStory_${storyTitle}_${author}`;
     const imagesParentId = `ScrapeImages_${storyTitle}_${author}`;
     const uniqueIdentifier = `urn:uuid:${parentID}`;
@@ -116,6 +133,13 @@ if (window.storyScrapeInjected) {
     browser.storage.local.get(parentID).then(result => {
       const chapters = result[parentID] || [];
       console.log("Chapters:", chapters);
+      
+      if (chapters.length === 0) {
+        console.error("No chapters found for this story.");
+        alert("No chapters found for this story. Please scrape some chapters first.");
+        return;
+      }
+      
       const zip = new JSZip();
       const epub = zip.folder("OEBPS");
 
@@ -136,16 +160,27 @@ if (window.storyScrapeInjected) {
       });
 
       // Add images to the EPUB
+      let imagePromises = [];
       browser.storage.local.get(null).then(items => {
-        Object.keys(items).forEach(key => {
-          if (key.startsWith(`${imagesParentId}/images/`)) {
-            const imagePathParts = key.split('/');
-            console.log(imagePathParts);
-            const chapterID = imagePathParts[2];
-            const imageName = imagePathParts[3];
+        const imageKeys = Object.keys(items).filter(key => key.startsWith(`${imagesParentId}/images/`));
+        console.log(`Found ${imageKeys.length} images to include in EPUB`);
+        
+        // Process all image paths
+        const imagePaths = new Set();
+        imageKeys.forEach(key => {
+          const imagePathParts = key.split('/');
+          const chapterID = imagePathParts[2];
+          const imageName = imagePathParts[3];
+          const imagePath = `images/${chapterID}/${imageName}`;
+          imagePaths.add(imagePath);
+          
+          try {
             const base64data = items[key].split(',')[1];
             const mimeType = items[key].split(';')[0].split(':')[1];
             epub.folder(`images/${chapterID}`).file(imageName, base64data, { base64: true, binary: true, mimeType });
+          } catch (error) {
+            console.error(`Error processing image ${key}:`, error);
+            // Continue processing other images
           }
         });
 
@@ -159,6 +194,23 @@ if (window.storyScrapeInjected) {
           </container>
         `);
 
+        // Build the manifest items for images, handling any missing images gracefully
+        const imageManifestItems = [];
+        imagePaths.forEach(imagePath => {
+          try {
+            const pathParts = imagePath.split('/');
+            const imageName = pathParts[pathParts.length - 1];
+            const mimeType = imageName.endsWith('.jpg') || imageName.endsWith('.jpeg') ? 'image/jpeg' :
+                            imageName.endsWith('.png') ? 'image/png' :
+                            imageName.endsWith('.gif') ? 'image/gif' : 'image/jpeg';
+            
+            imageManifestItems.push(`<item id="${imageName}" href="${imagePath}" media-type="${mimeType}"/>`);
+          } catch (error) {
+            console.error(`Error creating manifest entry for image ${imagePath}:`, error);
+            // Continue with other images
+          }
+        });
+
         epub.file("package.opf", `
           <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
             <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -171,13 +223,7 @@ if (window.storyScrapeInjected) {
               <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
               <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
               ${chapters.map((_, index) => `<item id="chapter${index + 1}" href="chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`).join("\n")}
-              ${Object.keys(items).filter(key => key.startsWith(`${imagesParentId}/images/`)).map(key => {
-                const imagePathParts = key.split('/');
-                const chapterID = imagePathParts[2];
-                const imageName = imagePathParts[3];
-                const mimeType = items[key].split(';')[0].split(':')[1];
-                return `<item id="${imageName}" href="images/${chapterID}/${imageName}" media-type="${mimeType}"/>`;
-              }).join("\n")}
+              ${imageManifestItems.join("\n")}
             </manifest>
             <spine toc="ncx">
               <itemref idref="nav"/>
@@ -235,7 +281,22 @@ if (window.storyScrapeInjected) {
 
         // Generate the EPUB file and trigger the download
         zip.generateAsync({ type: "blob" }).then((content) => {
-          saveAs(content, "story.epub");
+          saveAs(content, filename);
+        }).catch(error => {
+          console.error("Error generating EPUB:", error);
+          alert("Error generating EPUB file. See console for details.");
+        });
+      }).catch(error => {
+        console.error("Error retrieving images:", error);
+        alert("Error retrieving images. EPUB might be missing images.");
+        
+        // Continue with EPUB generation even if images failed
+        // Generate the EPUB file and trigger the download
+        zip.generateAsync({ type: "blob" }).then((content) => {
+          saveAs(content, filename);
+        }).catch(epubError => {
+          console.error("Error generating EPUB:", epubError);
+          alert("Error generating EPUB file. See console for details.");
         });
       });
     });
@@ -289,8 +350,60 @@ if (window.storyScrapeInjected) {
 
   checkAndContinueScraping();
 
+  function extractChapterLinks(tocSelector, ascending) {
+    console.log("Extracting chapter links with selector:", tocSelector);
+    if (!tocSelector) {
+      console.log("TOC Selector is empty.");
+      return [];
+    }
+    
+    const links = Array.from(document.querySelectorAll(tocSelector));
+    if (links.length === 0) {
+      console.log("No chapter links found with the provided selector.");
+      return [];
+    }
+    
+    console.log(`Found ${links.length} chapter links.`);
+    
+    let chapterLinks = links.map(link => {
+      const fullTitle = link.textContent.trim();
+      // Limit the title to 25 characters and add ellipsis if needed
+      const shortenedTitle = fullTitle.length > 25 ? fullTitle.substring(0, 25) + '...' : fullTitle;
+      return {
+        url: link.href,
+        title: shortenedTitle
+      };
+    }).filter(link => link.url && link.title);
+    
+    // Sort the links based on the ascending/descending preference
+    if (!ascending) {
+      chapterLinks.reverse();
+    }
+    
+    return chapterLinks;
+  }
+
+  function openChapterAndScrape(chapterLink, message, index, totalChapters) {
+    console.log(`Opening chapter ${index + 1}/${totalChapters}: ${chapterLink.title}`);
+    
+    return new Promise((resolve) => {
+      // Create a new tab to load the chapter
+      browser.runtime.sendMessage({
+        action: 'openChapter',
+        url: chapterLink.url,
+        chapterInfo: {
+          index: index,
+          title: chapterLink.title,
+          message: message
+        }
+      }).then(result => {
+        resolve(result);
+      });
+    });
+  }
+
   browser.runtime.onMessage.addListener((message) => {
-    console.log("Selectors:", message);
+    console.log("Selectors received in content:", message);
     // Save last message in cache
     browser.storage.local.set({ lastMessage: message });
 
@@ -315,6 +428,81 @@ if (window.storyScrapeInjected) {
     if (message.action === 'checkSelector') {
       const element = document.querySelector(message.selector);
       return Promise.resolve({ found: !!element });
+    }
+
+    if (message.action === 'extractTocLinks') {
+      const links = extractChapterLinks(message.tocSelector, message.ascending);
+      return Promise.resolve({ links: links });
+    }
+
+    if (message.action === 'processChapterInTab') {
+      // This is executed in the chapter tab that was opened
+      const chapterInfo = message.chapterInfo;
+      const scrapingMessage = chapterInfo.message || {};
+      
+      console.log("Processing chapter in tab with message:", scrapingMessage);
+      
+      // Override chapter title if we have it from the TOC
+      const chapter = {
+        storyTitle: logElement(scrapingMessage.storyTitleSelector, "Story Title", scrapingMessage.logStoryTitleText),
+        author: logElement(scrapingMessage.authorSelector, "Author", scrapingMessage.logAuthorText),
+        title: chapterInfo.title || logElement(scrapingMessage.chapterTitleSelector, "Chapter Title", scrapingMessage.logChapterTitleText),
+        body: logElement(scrapingMessage.chapterBodySelector, "Chapter Body", scrapingMessage.logChapterBodyText)
+      };
+
+      console.log("Debug chapter data:", {
+        storyTitleSelector: scrapingMessage.storyTitleSelector,
+        authorSelector: scrapingMessage.authorSelector,
+        chapterTitleSelector: scrapingMessage.chapterTitleSelector,
+        chapterBodySelector: scrapingMessage.chapterBodySelector,
+        storyTitle: chapter.storyTitle,
+        author: chapter.author,
+        title: chapter.title,
+        bodyLength: chapter.body ? chapter.body.length : 'null'
+      });
+
+      // Add default values for story title and author if not found
+      if (!chapter.storyTitle && chapterInfo.storyTitle) {
+        chapter.storyTitle = chapterInfo.storyTitle;
+      } else if (!chapter.storyTitle) {
+        chapter.storyTitle = "Unknown Story";
+      }
+      
+      if (!chapter.author && chapterInfo.author) {
+        chapter.author = chapterInfo.author;
+      } else if (!chapter.author) {
+        chapter.author = "Unknown Author";
+      }
+
+      // Detailed validation of required fields
+      const missingFields = [];
+      if (!chapter.storyTitle) missingFields.push("Story Title");
+      if (!chapter.author) missingFields.push("Author");
+      if (!chapter.title) missingFields.push("Chapter Title");
+      if (!chapter.body) missingFields.push("Chapter Body");
+      
+      if (missingFields.length > 0) {
+        const errorMessage = `Missing required chapter data: ${missingFields.join(", ")}. Check your selectors.`;
+        console.error(errorMessage, chapter);
+        return Promise.resolve({ 
+          success: false, 
+          errors: [errorMessage],
+          debugData: {
+            selectors: {
+              storyTitleSelector: scrapingMessage.storyTitleSelector,
+              authorSelector: scrapingMessage.authorSelector,
+              chapterTitleSelector: scrapingMessage.chapterTitleSelector,
+              chapterBodySelector: scrapingMessage.chapterBodySelector
+            },
+            chapterInfo: chapterInfo,
+            foundValues: chapter
+          }
+        });
+      }
+
+      return saveChapter(chapter).then(errors => {
+        return { success: true, errors: errors };
+      });
     }
   });
 }
